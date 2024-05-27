@@ -1,0 +1,136 @@
+Sub stocks():
+        Dim i As Long 'row number
+        Dim cell_vol As LongLong 'contents of column (cell volume)
+        Dim vol_total As LongLong 'what is going into new volume column L
+        Dim ticker As String ' what is going into column I
+        
+        Dim k As Long 'leaderboard row
+        
+        Dim ticker_close As Double
+        Dim ticker_open As Double
+        Dim price_change As Double
+        Dim percent_change As Double
+        Dim lastRow As Long
+        
+        Dim ws As Worksheet
+        
+        Dim greatest_volume As LongLong
+        Dim greatest_percent As Double
+        Dim lowest_percent As Double
+        Dim greatest_volume_ticker As String
+        Dim greatest_percent_ticker As String
+        Dim lowest_percent_ticker As String
+                
+        For Each ws In ThisWorkbook.Worksheets
+        
+            'asked the expert
+            lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    
+            
+            vol_total = 0
+            k = 2
+            
+            'write Leaderboard Columns
+            ws.Range("I1").Value = "Ticker"
+            ws.Range("J1").Value = "Quarterly Change"
+            ws.Range("K1").Value = "Percent Change"
+            ws.Range("L1").Value = "Volume"
+            
+            'assign open for first ticker
+            ticker_open = ws.Cells(2, 3).Value
+            
+            For i = 2 To lastRow:
+            cell_vol = ws.Cells(i, 7).Value
+            ticker = ws.Cells(i, 1).Value
+            
+            'loop rows 2 to 254
+            'check to see is next row ticker is different
+            'if ticker is the same, add to vol_total
+            'if different, add last row, write out to the leaderboard
+            'reset vol_total to 0
+            
+            If (ws.Cells(i + 1, 1).Value <> ticker) Then
+                'we have new ticker
+                vol_total = vol_total + cell_vol
+                
+                'get the closing price of the ticker
+                ticker_close = ws.Cells(i, 6).Value
+                price_change = ticker_close - ticker_open
+                
+                'check if open price is 0
+                If (ticker_open > 0) Then
+                    percent_change = price_change / ticker_open
+                Else
+                    percent_change = 0
+                End If
+                
+                ws.Cells(k, 9).Value = ticker
+                ws.Cells(k, 10).Value = price_change
+                ws.Cells(k, 11).Value = FormatPercent(percent_change)
+                ws.Cells(k, 12).Value = vol_total
+                
+                'formatting
+                If (price_change > 0) Then
+                    ws.Cells(k, 10).Interior.ColorIndex = 4 'green
+                    ws.Cells(k, 11).Interior.ColorIndex = 4 'green
+                ElseIf (price_change < 0) Then
+                    ws.Cells(k, 10).Interior.ColorIndex = 3  'red
+                    ws.Cells(k, 11).Interior.ColorIndex = 3  'red
+                Else
+                    ws.Cells(k, 10).Interior.ColorIndex = 2 'white
+                    ws.Cells(k, 11).Interior.ColorIndex = 2 'white
+                End If
+                
+                'second leaderboard
+                If ticker = ws.Cells(2, 1).Value Then
+                    'initialize the variables
+                    greatest_volume = vol_total
+                    greatest_percent = percent_change
+                    lowest_percent = percent_change
+                Else
+                    'compare the variables
+                    If vol_total > greatest_volume Then
+                        greatest_volume = vol_total
+                    End If
+                    
+                    If percent_change > greatest_percent Then
+                        greatest_percent = percent_change
+                    End If
+                    
+                    If percent_change < lowest_percent Then
+                        lowest_percent = percent_change
+                    End If
+                End If
+                
+                'reset
+                vol_total = 0
+                k = k + 1
+                ticker_open = ws.Cells(i + 1, 3).Value 'looking ahead to find the next ticker_open
+                
+            Else
+                'add to the total
+                vol_total = vol_total + cell_vol
+                
+            End If
+        Next i
+        
+        'style leaderboard
+        ws.Columns("I:L").AutoFit
+        
+        'write second leaderboard
+        ws.Range("Q2").Value = greatest_percent
+        ws.Range("Q3").Value = lowest_percent
+        ws.Range("Q4").Value = greatest_volume
+        
+    Next ws
+End Sub
+
+Sub reset()
+    Dim ws As Worksheet
+    
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Range("I:L").Value = ""
+        ws.Range("I:L").Interior.ColorIndex = 2
+    Next ws
+End Sub
+
